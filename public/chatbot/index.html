@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FusaBot — Demo FusaShop</title>
+  <link rel="stylesheet" href="./chatbot.css" />
+</head>
+<body>
+  <p style="font-family: system-ui; padding: 1rem 1.5rem; max-width: 40rem;">
+    Vista de demostración del widget. Sirve <code>public/</code> con un servidor HTTP
+    (por ejemplo <code>npx serve public</code> desde la raíz del repo) y define tu API key
+    en el script de configuración justo debajo (solo para pruebas locales; en producción usa Vite
+    con <code>VITE_GEMINI_API_KEY</code> o un proxy en backend).
+  </p>
+
+  <script>
+    window.__FUSABOT_CONFIG__ = {
+      geminiKey: 'AIzaSyA5DuKvGcQULY6TlWqjWElv4R3JeQmXEW4',
+      groqKey: 'YOUR_GROQ_API_KEY_HERE',
+      model: 'llama-3.3-70b-versatile',
+    };
+  </script>
+
+  <div class="fusabot-widget" id="fusabot">
+    <div class="fusabot-header">🛒 FusaBot — Asistente FusaShop</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area">
+      <input
+        type="text"
+        id="chat-input"
+        placeholder="Escribe tu pregunta sobre FusaShop..."
+        autocomplete="off"
+      />
+      <button type="button" id="chat-send" aria-label="Enviar">➤</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initChatbot } from './chatbot.js';
+    initChatbot({
+      containerId: 'chat-messages',
+      inputId: 'chat-input',
+      sendBtnId: 'chat-send',
+    });
+  </script>
+</body>
+</html>
