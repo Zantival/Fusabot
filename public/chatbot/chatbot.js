@@ -11,6 +11,12 @@ function env(key) {
     if (val && val.includes('YOUR_')) return '';
     return val;
   }
+  // Check runtime config (window.__FUSABOT_CONFIG__)
+  if (typeof window !== 'undefined' && window.__FUSABOT_CONFIG__) {
+    const val = window.__FUSABOT_CONFIG__[key];
+    if (val && val.includes('YOUR_')) return '';
+    return val;
+  }
   return '';
 }
 
