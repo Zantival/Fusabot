@@ -21,8 +21,8 @@ function runtimeConfig() {
 const GEMINI_API_KEY = env('VITE_GEMINI_API_KEY') || runtimeConfig().geminiKey || runtimeConfig().apiKey || '';
 const GROQ_API_KEY = env('VITE_GROQ_API_KEY') || runtimeConfig().groqKey || '';
 
-const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash-001'];
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama3-8b-8192', 'mixtral-8x7b-32768'];
+const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash-exp'];
+const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
 /** Historial de conversación (Formato neutro: { role: 'user'|'assistant', content: string }) */
 let conversationHistory = [];
@@ -111,9 +111,12 @@ async function callAI(userMessage) {
 
   let lastError = null;
 
-  // 1. Intentar con Groq primero (si está disponible) porque es más rápido y tiene menos límites de cuota que el tier gratuito de Gemini
+  // 1. Intentar con Groq primero (Prioridad Máxima)
   if (GROQ_API_KEY) {
-    for (const model of GROQ_MODELS) {
+    const preferredGroqModel = env('VITE_GROQ_MODEL') || runtimeConfig().model || 'llama-3.3-70b-versatile';
+    const groqModelsToTry = [...new Set([preferredGroqModel, ...GROQ_MODELS])];
+
+    for (const model of groqModelsToTry) {
       try {
         console.log(`[FusaBot] Intentando con Groq (${model})...`);
         const reply = await callGroq(model, conversationHistory);
@@ -122,15 +125,20 @@ async function callAI(userMessage) {
       } catch (err) {
         console.warn(`[FusaBot] Error en Groq (${model}):`, err.message);
         lastError = err;
-        if (err.message.includes('limit') || err.message.includes('429')) continue;
-        break; // Si es un error distinto a cuota, quizás mejor parar o probar el siguiente provider
+        // Si es error de cuota o de modelo no encontrado, probamos el siguiente de Groq
+        if (err.message.includes('limit') || err.message.includes('429') || err.message.includes('model_not_found')) continue;
+        break; 
       }
     }
   }
 
   // 2. Intentar con Gemini como respaldo
   if (GEMINI_API_KEY) {
-    for (const model of [env('VITE_GEMINI_MODEL') || 'gemini-1.5-flash', ...GEMINI_MODELS]) {
+    const preferredModel = env('VITE_GEMINI_MODEL') || runtimeConfig().geminiModel || 'gemini-1.5-flash';
+    // Crear lista única de modelos para probar
+    const modelsToTry = [...new Set([preferredModel, ...GEMINI_MODELS])];
+    
+    for (const model of modelsToTry) {
       try {
         console.log(`[FusaBot] Intentando con Gemini (${model})...`);
         const reply = await callGemini(model, conversationHistory);
@@ -139,7 +147,13 @@ async function callAI(userMessage) {
       } catch (err) {
         console.warn(`[FusaBot] Error en Gemini (${model}):`, err.message);
         lastError = err;
-        continue;
+        
+        // Si es error de cuota (429), intentamos el siguiente modelo
+        if (err.message.includes('quota') || err.message.includes('429') || err.message.includes('limit')) {
+          continue;
+        }
+        // Si es otro tipo de error grave, paramos
+        break;
       }
     }
   }
@@ -201,12 +215,14 @@ export function initChatbot({ containerId, inputId, sendBtnId }) {
       renderMessage(container, botReply, 'bot');
     } catch (err) {
       typingEl.remove();
-      const hint = err.message || 'Error desconocido';
-      renderMessage(
-        container,
-        `Lo siento, tengo problemas para responder en este momento. (${hint})`,
-        'bot',
-      );
+      let hint = err.message || 'Error desconocido';
+      let userFriendlyMsg = `Lo siento, tengo problemas para responder en este momento. (${hint})`;
+      
+      if (hint.includes('quota') || hint.includes('429') || hint.includes('limit')) {
+        userFriendlyMsg = 'Lo siento, FusaBot ha superado su límite de mensajes gratuitos por ahora. Por favor, intenta de nuevo en unos minutos.';
+      }
+
+      renderMessage(container, userFriendlyMsg, 'bot');
       console.error('[FusaBot Error]', err);
     }
   }
