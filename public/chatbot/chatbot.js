@@ -6,7 +6,10 @@ import { SYSTEM_PROMPT } from './knowledge-base.js';
 
 function env(key) {
   if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    return import.meta.env[key];
+    const val = import.meta.env[key];
+    // Treat placeholder values as missing
+    if (val && val.includes('YOUR_')) return '';
+    return val;
   }
   return '';
 }
@@ -97,8 +100,8 @@ async function callGroq(model, history) {
  * Función principal para obtener respuesta de la IA
  */
 async function callAI(userMessage) {
-  if (!GEMINI_API_KEY && !GROQ_API_KEY) {
-    throw new Error('No se encontró ninguna API Key (Gemini o Groq).');
+  if (!GROQ_API_KEY) {
+    throw new Error('No se encontró la API Key de Groq.');
   }
 
   // Agregar mensaje del usuario al historial
@@ -115,7 +118,6 @@ async function callAI(userMessage) {
   if (GROQ_API_KEY) {
     const preferredGroqModel = env('VITE_GROQ_MODEL') || runtimeConfig().model || 'llama-3.3-70b-versatile';
     const groqModelsToTry = [...new Set([preferredGroqModel, ...GROQ_MODELS])];
-
     for (const model of groqModelsToTry) {
       try {
         console.log(`[FusaBot] Intentando con Groq (${model})...`);
@@ -125,38 +127,22 @@ async function callAI(userMessage) {
       } catch (err) {
         console.warn(`[FusaBot] Error en Groq (${model}):`, err.message);
         lastError = err;
-        // Si es error de cuota o de modelo no encontrado, probamos el siguiente de Groq
-        if (err.message.includes('limit') || err.message.includes('429') || err.message.includes('model_not_found')) continue;
-        break; 
-      }
-    }
-  }
-
-  // 2. Intentar con Gemini como respaldo
-  if (GEMINI_API_KEY) {
-    const preferredModel = env('VITE_GEMINI_MODEL') || runtimeConfig().geminiModel || 'gemini-1.5-flash';
-    // Crear lista única de modelos para probar
-    const modelsToTry = [...new Set([preferredModel, ...GEMINI_MODELS])];
-    
-    for (const model of modelsToTry) {
-      try {
-        console.log(`[FusaBot] Intentando con Gemini (${model})...`);
-        const reply = await callGemini(model, conversationHistory);
-        conversationHistory.push({ role: 'assistant', content: reply });
-        return reply;
-      } catch (err) {
-        console.warn(`[FusaBot] Error en Gemini (${model}):`, err.message);
-        lastError = err;
-        
-        // Si es error de cuota (429), intentamos el siguiente modelo
-        if (err.message.includes('quota') || err.message.includes('429') || err.message.includes('limit')) {
+        // Si es error de cuota, probamos otro modelo de Groq
+        if (err.message.includes('limit') || err.message.includes('429') || err.message.includes('quota')) {
           continue;
         }
-        // Si es otro tipo de error grave, paramos
+        // Si es otro tipo de error, detenemos la cadena de Groq
         break;
       }
     }
   }
+
+  // 2. Si Groq falló, no intentar Gemini (solo usar Groq como proveedor)
+  if (lastError) {
+    // Mensaje amigable ya se manejará en el catch del llamador
+    throw lastError;
+  }
+
 
   // Si llegamos aquí, todo falló
   conversationHistory.pop(); // Quitar el mensaje del usuario que no pudo ser procesado
