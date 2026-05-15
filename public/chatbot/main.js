@@ -1,7 +1,7 @@
-// chatbot/main.js — Entry point de Vite para inyectar variables de entorno
+// chatbot/main.js — Inyectar configuración de Groq
 
-// Vite automáticamente reemplaza import.meta.env.VITE_* en tiempo de build
+// Vite reemplaza __VITE_GROQ_API_KEY__ y __VITE_GROQ_MODEL__ en tiempo de build
 window.__FUSABOT_CONFIG__ = {
-  groqKey: import.meta.env.VITE_GROQ_API_KEY || '',
-  groqModel: import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile',
+  groqKey: __VITE_GROQ_API_KEY__,
+  groqModel: __VITE_GROQ_MODEL__
 };
