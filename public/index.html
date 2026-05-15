@@ -159,9 +159,9 @@
         <div class="section-head">
           <h2 id="fusabot-title">FusaBot, tu asistente en la página</h2>
           <p>
-            El chat flotante usa la base de conocimiento oficial de FusaShop y Gemini para responder
-            en español. Configura tu clave en la variable de entorno o en el script de esta página
-            para pruebas locales.
+            El chat flotante usa la base de conocimiento oficial de FusaShop y **Groq** para responder
+            en español. Configura solo <code>window.__FUSABOT_CONFIG__.groqKey</code> (clave <code>gsk_…</code>)
+            y opcionalmente <code>groqModel</code>; con Vite usa <code>VITE_GROQ_API_KEY</code> / <code>VITE_GROQ_MODEL</code>.
           </p>
         </div>
       </div>
@@ -180,12 +180,11 @@
     </div>
   </footer>
 
-  <!-- Widget FusaBot: la clave debe ir AQUÍ en la landing (el .env solo sirve con Vite/Laravel). -->
+  <!-- FusaBot: solo Groq — groqKey (gsk_…) y opcional groqModel -->
   <script>
     window.__FUSABOT_CONFIG__ = {
-      geminiKey: 'AIzaSyA5DuKvGcQULY6TlWqjWElv4R3JeQmXEW4',
-      groqKey: 'YOUR_GROQ_API_KEY_HERE',
-      model: 'llama-3.3-70b-versatile',
+      groqKey: 'YOUR_GROQ_API_KEY',
+      groqModel: 'llama-3.3-70b-versatile',
     };
   </script>
   <div class="fusabot-widget" id="fusabot-widget">

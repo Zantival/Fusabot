@@ -1,29 +1,29 @@
 # FusaShop — widget FusaBot
 
-Asistente de chat para **FusaShop** (MiPymes, Fusagasugá). Usa la API de **Google Gemini** y responde con base en la base de conocimiento definida en código.
+Asistente de chat para **FusaShop** (MiPymes, Fusagasugá). Usa la API de **[Groq](https://console.groq.com/)** (modelos vía endpoint compatible con OpenAI) y responde con base en la base de conocimiento en código.
 
 ## Estructura
 
-- `public/chatbot/knowledge-base.js` — datos de FusaShop y `SYSTEM_PROMPT` enviado a Gemini. **Actualizar el conocimiento del bot editando solo este archivo.**
-- `public/chatbot/chatbot.js` — llamadas a la API y UI del widget.
+- `public/chatbot/knowledge-base.js` — datos de FusaShop y `SYSTEM_PROMPT`. **Actualizar el conocimiento del bot editando solo este archivo.**
+- `public/chatbot/chatbot.js` — llamadas a Groq y UI del widget.
 - `public/chatbot/chatbot.css` — estilos del widget flotante.
 - `public/chatbot/index.html` — página de demostración del widget.
 
-Variables de entorno de referencia: copia `.env.example` a `.env` en el proyecto Laravel/Vite cuando integres el front compilado. **No subas** `.env` con claves reales.
+Copia `.env.example` a `.env` cuando uses Vite/Laravel. **No subas** `.env` con claves reales.
 
 ## Probar en local
 
-1. Obtén una API key en [Google AI Studio](https://aistudio.google.com/).
-2. Desde la raíz del repositorio, sirve la carpeta `public` (los módulos ES requieren HTTP, no `file://`):
+1. Crea una API key en [Groq Console](https://console.groq.com/keys) (formato `gsk_…`).
+2. Sirve la carpeta `public` por HTTP (los módulos ES no funcionan bien con `file://`):
 
 ```bash
-npx --yes serve public
+cd public && python3 -m http.server 3456
 ```
 
-3. Abre la URL del servidor: la **landing** está en `/` (`public/index.html`). La demo mínima del widget sigue en `/chatbot/index.html`.
-4. En `public/chatbot/index.html`, rellena `window.__FUSABOT_CONFIG__.apiKey` con tu clave **solo para pruebas locales**. No commitees claves.
+3. Abre la **landing** en `http://127.0.0.1:3456/` o la demo en `/chatbot/index.html`.
+4. En `public/index.html` (o la demo), solo en `window.__FUSABOT_CONFIG__`: **`groqKey: 'gsk_…'`** y, si quieres, **`groqModel`**.
 
-Con **Vite**, define `VITE_GEMINI_API_KEY` y `VITE_GEMINI_MODEL` en `.env`; el módulo `chatbot.js` las lee automáticamente.
+Con **Vite**, define solo **`VITE_GROQ_API_KEY`** y opcionalmente **`VITE_GROQ_MODEL`** en `.env`.
 
 ## Integración Laravel (Blade)
 
@@ -53,4 +53,8 @@ Contenido sugerido de `resources/views/partials/fusabot-widget.blade.php`:
 
 ## Seguridad
 
-Exponer la API key en el navegador tiene riesgos de abuso. Para producción conviene un **proxy en backend** que llame a Gemini con la clave en servidor.
+Exponer la API key de Groq en el navegador tiene riesgos de abuso. Para producción conviene un **proxy en backend** que llame a Groq con la clave en servidor.
+
+## Si ves "Failed to fetch"
+
+Suele ser red, bloqueador, VPN, o abrir el HTML como archivo (`file://`). Sirve el sitio con un servidor HTTP y prueba otra red o sin extensiones que bloqueen `api.groq.com`.

@@ -1,24 +1,7 @@
-// chatbot.js
-// Módulo principal del chatbot FusaShop usando Gemini API y Groq API
-// Principios: modular, reutilizable, bajo acoplamiento
+// chatbot.js — FusaBot con Groq (API compatible con OpenAI)
+// https://console.groq.com/keys
 
 import { SYSTEM_PROMPT } from './knowledge-base.js';
-
-function env(key) {
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    const val = import.meta.env[key];
-    // Treat placeholder values as missing
-    if (val && val.includes('YOUR_')) return '';
-    return val;
-  }
-  // Check runtime config (window.__FUSABOT_CONFIG__)
-  if (typeof window !== 'undefined' && window.__FUSABOT_CONFIG__) {
-    const val = window.__FUSABOT_CONFIG__[key];
-    if (val && val.includes('YOUR_')) return '';
-    return val;
-  }
-  return '';
-}
 
 function runtimeConfig() {
   return typeof window !== 'undefined' && window.__FUSABOT_CONFIG__
@@ -26,133 +9,130 @@ function runtimeConfig() {
     : {};
 }
 
-/** Configuración de APIs */
-const GEMINI_API_KEY = env('VITE_GEMINI_API_KEY') || runtimeConfig().geminiKey || runtimeConfig().apiKey || '';
-const GROQ_API_KEY = env('VITE_GROQ_API_KEY') || runtimeConfig().groqKey || '';
+function viteEnv(key) {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    return String(import.meta.env[key]).trim();
+  }
+  return '';
+}
 
-const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash-exp'];
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+function isPlaceholderKey(key) {
+  if (!key || typeof key !== 'string') return true;
+  const k = key.trim();
+  if (k.length < 8) return true;
+  if (/^YOUR_/i.test(k)) return true;
+  if (/placeholder|TU_API|AQUI|example/i.test(k)) return true;
+  return false;
+}
 
-/** Historial de conversación (Formato neutro: { role: 'user'|'assistant', content: string }) */
+/** Clave Groq: solo `VITE_GROQ_API_KEY` (Vite) o `window.__FUSABOT_CONFIG__.groqKey`. */
+function groqApiKey() {
+  const fromVite = viteEnv('VITE_GROQ_API_KEY');
+  const cfg = runtimeConfig();
+  const fromWindow = (cfg.groqKey || '').trim();
+  const key = fromVite || fromWindow;
+  return isPlaceholderKey(key) ? '' : key;
+}
+
+function groqModelPreferred() {
+  const fromVite = viteEnv('VITE_GROQ_MODEL');
+  const cfg = runtimeConfig();
+  return (fromVite || cfg.groqModel || 'llama-3.3-70b-versatile').trim();
+}
+
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const FALLBACK_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama-3.1-70b-versatile'];
+
+function modelsToTry() {
+  const preferred = groqModelPreferred();
+  const list = [preferred, ...FALLBACK_MODELS.filter((m) => m !== preferred)];
+  return [...new Set(list)];
+}
+
+/** Historial solo user/assistant (el system va aparte en cada request). */
 let conversationHistory = [];
 
-/**
- * Llama a la API de Gemini
- */
-async function callGemini(model, history) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-  
-  // Convertir historial al formato Gemini
-  const contents = history.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }]
-  }));
-
-  const payload = {
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 512, topP: 0.8 },
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || 'Error en Gemini');
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Gemini no devolvió texto');
-  return text;
+function buildMessages() {
+  return [{ role: 'system', content: SYSTEM_PROMPT }, ...conversationHistory];
 }
 
-/**
- * Llama a la API de Groq (OpenAI compatible)
- */
-async function callGroq(model, history) {
-  const url = 'https://api.groq.com/openai/v1/chat/completions';
-  
-  const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...history
-  ];
+async function callGroq(model) {
+  const key = groqApiKey();
+  const messages = buildMessages();
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.3,
-      max_tokens: 512,
-      top_p: 0.8
-    }),
-  });
+  let res;
+  try {
+    res = await fetch(GROQ_URL, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.3,
+        max_tokens: 512,
+        top_p: 0.85,
+      }),
+    });
+  } catch (e) {
+    const name = e && e.name;
+    const msg = e && e.message;
+    if (name === 'TypeError' || /Failed to fetch|NetworkError|Load failed/i.test(String(msg))) {
+      throw new Error(
+        'Sin conexión a Groq (Failed to fetch). Revisa: internet, bloqueadores, VPN, o que la página se sirva por http(s) con un servidor local (no abras el HTML como file://). En redes restrictivas usa un proxy en tu backend.',
+      );
+    }
+    throw e;
+  }
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || 'Error en Groq');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const errMsg = data?.error?.message || res.statusText || 'Error desconocido';
+    throw new Error(`Groq ${res.status}: ${errMsg}`);
+  }
 
   const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Groq no devolvió texto');
-  return text;
+  if (!text || !String(text).trim()) {
+    console.error('[FusaBot] Respuesta vacía:', data);
+    throw new Error('Groq no devolvió texto usable.');
+  }
+  return String(text).trim();
 }
 
-/**
- * Función principal para obtener respuesta de la IA
- */
-async function callAI(userMessage) {
-  if (!GROQ_API_KEY) {
-    throw new Error('No se encontró la API Key de Groq.');
+async function callAssistant(userMessage) {
+  const key = groqApiKey();
+  if (!key) {
+    throw new Error(
+      'Falta la API key de Groq. Pon tu clave gsk_… en window.__FUSABOT_CONFIG__.groqKey (HTML) o en VITE_GROQ_API_KEY (.env con Vite).',
+    );
   }
 
-  // Agregar mensaje del usuario al historial
   conversationHistory.push({ role: 'user', content: userMessage });
-
-  // Limitar historial
-  if (conversationHistory.length > 8) {
-    conversationHistory = conversationHistory.slice(conversationHistory.length - 8);
+  if (conversationHistory.length > 16) {
+    conversationHistory = conversationHistory.slice(-16);
   }
 
-  let lastError = null;
-
-  // 1. Intentar con Groq primero (Prioridad Máxima)
-  if (GROQ_API_KEY) {
-    const preferredGroqModel = env('VITE_GROQ_MODEL') || runtimeConfig().model || 'llama-3.3-70b-versatile';
-    const groqModelsToTry = [...new Set([preferredGroqModel, ...GROQ_MODELS])];
-    for (const model of groqModelsToTry) {
-      try {
-        console.log(`[FusaBot] Intentando con Groq (${model})...`);
-        const reply = await callGroq(model, conversationHistory);
-        conversationHistory.push({ role: 'assistant', content: reply });
-        return reply;
-      } catch (err) {
-        console.warn(`[FusaBot] Error en Groq (${model}):`, err.message);
-        lastError = err;
-        // Si es error de cuota, probamos otro modelo de Groq
-        if (err.message.includes('limit') || err.message.includes('429') || err.message.includes('quota')) {
-          continue;
-        }
-        // Si es otro tipo de error, detenemos la cadena de Groq
-        break;
-      }
+  let lastErr;
+  for (const model of modelsToTry()) {
+    try {
+      const reply = await callGroq(model);
+      conversationHistory.push({ role: 'assistant', content: reply });
+      return reply;
+    } catch (err) {
+      lastErr = err;
+      const m = err instanceof Error ? err.message : String(err);
+      if (/Groq 429|rate limit|quota/i.test(m)) continue;
+      if (/Groq 40[04]/.test(m) && /model/i.test(m)) continue;
+      break;
     }
   }
 
-  // 2. Si Groq falló, no intentar Gemini (solo usar Groq como proveedor)
-  if (lastError) {
-    // Mensaje amigable ya se manejará en el catch del llamador
-    throw lastError;
-  }
-
-
-  // Si llegamos aquí, todo falló
-  conversationHistory.pop(); // Quitar el mensaje del usuario que no pudo ser procesado
-  throw lastError || new Error('No se pudo obtener respuesta de ningún servicio de IA.');
+  conversationHistory.pop();
+  throw lastErr || new Error('No se pudo obtener respuesta de Groq.');
 }
 
 function renderMessage(container, text, role) {
@@ -183,7 +163,6 @@ export function initChatbot({ containerId, inputId, sendBtnId }) {
     return;
   }
 
-  // Mensaje de bienvenida si el contenedor está vacío
   if (container.children.length === 0) {
     renderMessage(
       container,
@@ -202,19 +181,17 @@ export function initChatbot({ containerId, inputId, sendBtnId }) {
     const typingEl = showTypingIndicator(container);
 
     try {
-      const botReply = await callAI(userText);
+      const botReply = await callAssistant(userText);
       typingEl.remove();
       renderMessage(container, botReply, 'bot');
     } catch (err) {
       typingEl.remove();
-      let hint = err.message || 'Error desconocido';
-      let userFriendlyMsg = `Lo siento, tengo problemas para responder en este momento. (${hint})`;
-      
-      if (hint.includes('quota') || hint.includes('429') || hint.includes('limit')) {
-        userFriendlyMsg = 'Lo siento, FusaBot ha superado su límite de mensajes gratuitos por ahora. Por favor, intenta de nuevo en unos minutos.';
-      }
-
-      renderMessage(container, userFriendlyMsg, 'bot');
+      const hint = err instanceof Error ? err.message : 'Error desconocido';
+      renderMessage(
+        container,
+        `No pude conectar con el asistente. ${hint}`,
+        'bot',
+      );
       console.error('[FusaBot Error]', err);
     }
   }
