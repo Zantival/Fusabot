@@ -104,11 +104,73 @@ export const FUSASHOP_KNOWLEDGE = {
     asesores: ['Scrum Master del proyecto', 'Product Owner del proyecto'],
     universidad: 'Universidad de Cundinamarca',
   },
+
+  medit: {
+    nombre: 'MEDIT',
+    nombreCompleto: 'Maestría en Educación Digital y Tecnología',
+    universidad: 'Universidad de Cundinamarca',
+    descripcion: `La Maestría en Educación Digital y Tecnología (MEDIT) es un programa
+    académico de postgrado diseñado para formar expertos en la integración de tecnología
+    digital en procesos educativos. Prepara profesionales para transformar la educación
+    mediante herramientas digitales, innovación pedagógica y gestión de la transformación
+    digital en instituciones educativas.`,
+    facultad: 'Facultad de Educación',
+    duracion: '4 semestres',
+    modalidad: 'Presencial con apoyo digital',
+    ubicacion: 'Fusagasugá, Cundinamarca',
+    objetivos: [
+      'Formar maestros especializados en educación digital y tecnología',
+      'Desarrollar competencias en diseño de ambientes de aprendizaje digital',
+      'Integrar pedagogía con herramientas tecnológicas innovadoras',
+      'Impulsar la transformación digital en instituciones educativas',
+    ],
+    lineasInvestigacion: [
+      'Educación Digital y Transformación Pedagógica',
+      'Tecnologías Emergentes en Educación',
+      'Gestión de Proyectos de Transformación Digital Educativa',
+      'Innovación en Ambientes de Aprendizaje',
+    ],
+    coordinador: 'Coordinador MEDIT',
+    contacto: {
+      correo: 'medit@ucundinamarca.edu.co',
+      telefono: '(8) 8674000 ext. Consultar extensión MEDIT',
+      ubicacion: 'Universidad de Cundinamarca, Fusagasugá, Cundinamarca',
+    },
+    faqMedit: [
+      {
+        pregunta: '¿Cuáles son los requisitos para ingresar a MEDIT?',
+        respuesta: `Poseer título de licenciado, profesional o equivalente. Experiencia
+        docente o en educación es deseable. Se requiere presentar prueba de aptitud
+        académica y entrevista personal.`,
+      },
+      {
+        pregunta: '¿Cuál es el costo de la Maestría?',
+        respuesta: `Te invitamos a contactar directamente a la Universidad de Cundinamarca
+        para consultar aranceles, becas y opciones de financiamiento disponibles.`,
+      },
+      {
+        pregunta: '¿Es posible estudiar MEDIT mientras trabajo?',
+        respuesta: `Sí. MEDIT está diseñada con modalidad presencial con apoyo digital,
+        lo que permite a profesionales activos compatibilizar sus horarios.`,
+      },
+      {
+        pregunta: '¿Cuál es el perfil de los estudiantes de MEDIT?',
+        respuesta: `Docentes en ejercicio, diseñadores educativos, coordinadores pedagógicos
+        y profesionales interesados en la transformación digital de la educación.`,
+      },
+      {
+        pregunta: '¿MEDIT ofrece acceso a nuevas tecnologías educativas?',
+        respuesta: `Sí. El programa integra plataformas de aprendizaje digital, herramientas
+        de inteligencia artificial educativa, realidad virtual y otros recursos innovadores.`,
+      },
+    ],
+  },
 };
 
 /** Texto compacto para el prompt (menos tokens que JSON completo → menos 429 por cuota). */
 function knowledgeToPromptText(k) {
   const faq = k.soporte.faq.map((f) => `- ${f.pregunta} → ${f.respuesta.replace(/\s+/g, ' ')}`).join('\n');
+  const faqMedit = k.medit.faqMedit.map((f) => `- ${f.pregunta} → ${f.respuesta.replace(/\s+/g, ' ')}`).join('\n');
   return [
     `GENERAL: ${k.general.nombre}. ${k.general.descripcion.replace(/\s+/g, ' ')}`,
     `Ciudad: ${k.general.ciudad}. Misión: ${k.general.mision.replace(/\s+/g, ' ')}`,
@@ -119,6 +181,8 @@ function knowledgeToPromptText(k) {
     `SOPORTE: ${k.soporte.canales.join(', ')}. Horario: ${k.soporte.horario}`,
     `FAQ:\n${faq}`,
     `EQUIPO dev: ${k.equipo.desarrolladores.join('; ')}. Asesores: ${k.equipo.asesores.join(', ')}. ${k.equipo.universidad}`,
+    `MEDIT (Maestría en Educación Digital y Tecnología): ${k.medit.descripcion.replace(/\s+/g, ' ')} Objetivos: ${k.medit.objetivos.join('; ')}. Contacto: ${k.medit.contacto.correo}. Duración: ${k.medit.duracion}. Modalidad: ${k.medit.modalidad}`,
+    `FAQ MEDIT:\n${faqMedit}`,
   ].join('\n');
 }
 

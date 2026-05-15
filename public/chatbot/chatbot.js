@@ -1,7 +1,7 @@
 // chatbot.js — FusaBot con Groq (API compatible con OpenAI)
 // https://console.groq.com/keys
 
-import { SYSTEM_PROMPT } from './knowledge-base.js';
+import { SYSTEM_PROMPT, FUSASHOP_KNOWLEDGE } from './knowledge-base.js';
 
 // Variable para almacenar el idioma detectado en la conversación
 let detectedLanguage = 'es';
@@ -195,6 +195,50 @@ function renderMessage(container, text, role) {
   container.scrollTop = container.scrollHeight;
 }
 
+function renderFaqSection(container) {
+  const faqDiv = document.createElement('div');
+  faqDiv.classList.add('faq-section');
+  
+  const title = document.createElement('div');
+  title.classList.add('faq-title');
+  title.textContent = '❓ Preguntas Frecuentes';
+  faqDiv.appendChild(title);
+
+  const buttonsDiv = document.createElement('div');
+  buttonsDiv.classList.add('faq-buttons');
+
+  // Preguntas de FusaShop
+  const shopFaq = FUSASHOP_KNOWLEDGE.soporte.faq.slice(0, 2);
+  shopFaq.forEach((item) => {
+    const btn = document.createElement('button');
+    btn.classList.add('faq-btn');
+    btn.textContent = '🛒 ' + item.pregunta.substring(0, 25) + '...';
+    btn.onclick = () => {
+      const input = container.closest('.fusabot-widget').querySelector('#chat-input');
+      input.value = item.pregunta;
+      input.focus();
+    };
+    buttonsDiv.appendChild(btn);
+  });
+
+  // Preguntas de MEDIT
+  const meditFaq = FUSASHOP_KNOWLEDGE.medit.faqMedit.slice(0, 2);
+  meditFaq.forEach((item) => {
+    const btn = document.createElement('button');
+    btn.classList.add('faq-btn');
+    btn.textContent = '📚 ' + item.pregunta.substring(0, 25) + '...';
+    btn.onclick = () => {
+      const input = container.closest('.fusabot-widget').querySelector('#chat-input');
+      input.value = item.pregunta;
+      input.focus();
+    };
+    buttonsDiv.appendChild(btn);
+  });
+
+  faqDiv.appendChild(buttonsDiv);
+  container.appendChild(faqDiv);
+}
+
 function showTypingIndicator(container) {
   const indicator = document.createElement('div');
   indicator.id = 'typing-indicator';
@@ -221,6 +265,11 @@ export function initChatbot({ containerId, inputId, sendBtnId }) {
       ? '👋 Hi! I\'m FusaBot 🛒, FusaShop\'s assistant. How can I help you today?'
       : '¡Hola! Soy FusaBot 🛒 el asistente de FusaShop. ¿En qué te puedo ayudar hoy?';
     renderMessage(container, welcomeMsg, 'bot');
+    
+    // Mostrar preguntas frecuentes
+    setTimeout(() => {
+      renderFaqSection(container);
+    }, 300);
   }
 
   async function handleSend() {
