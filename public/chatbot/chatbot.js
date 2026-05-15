@@ -3,10 +3,24 @@
 
 import { SYSTEM_PROMPT } from './knowledge-base.js';
 
+// Variable para almacenar el idioma detectado en la conversación
+let detectedLanguage = 'es';
+
 function runtimeConfig() {
   return typeof window !== 'undefined' && window.__FUSABOT_CONFIG__
     ? window.__FUSABOT_CONFIG__
     : {};
+}
+
+/** Detecta si el mensaje está en español o inglés */
+function detectLanguage(text) {
+  const spanishWords = /\b(hola|buenos|qué|cómo|para|pero|porque|puedo|puede|quiero|necesito|gracias|por favor|sí|no|el|la|de|que|y|es|en|un|una|me|te|se|le|nos|os|les|mi|tu|su|nuestro|vuestro|este|ese|aquello|yo|tú|él|nosotros|vosotros|ellos|ella|nosotras|vosotras|ellas|este|ese|aquel|estoy|estás|está|estamos|estáis|están|soy|eres|es|somos|sois|son|tengo|tienes|tiene|tenemos|tenéis|tienen|voy|vas|va|vamos|vais|van|debo|debes|debe|debemos|debéis|deben|puedo|puedes|puede|podemos|podéis|pueden|quiero|quieres|quiere|queremos|queréis|quieren|siento|sientes|siente|sentimos|sentís|sienten|pienso|piensas|piensa|pensamos|pensáis|piensan|miro|miras|mira|miramos|miráis|miran|hablo|hablas|habla|hablamos|habláis|hablan|compro|compras|compra|compramos|compráis|compran|vendo|vendes|vende|vendemos|vendéis|venden|llamo|llamas|llama|llamamos|llamáis|llaman|siento|sientes|siente|sentimos|sentís|sienten)\b/gi;
+  const englishWords = /\b(hello|hi|how|what|why|when|where|who|which|can|could|would|should|may|might|must|shall|will|do|does|did|done|have|has|had|am|is|are|was|were|be|been|being|a|an|the|and|or|but|in|on|at|to|from|of|with|by|for|about|as|if|so|than|that|this|these|those|not|no|yes|me|you|him|her|us|them|my|your|his|her|our|their|its|i|we|they|she|it|they|please|thank|thanks|thanks|thanks|help|need|want|buy|sell|product|price|payment|support|order|shop|store|business|customer|vendor|seller|help|question|problem|issue)\b/gi;
+  
+  const spanishMatches = (text.match(spanishWords) || []).length;
+  const englishMatches = (text.match(englishWords) || []).length;
+  
+  return englishMatches > spanishMatches ? 'en' : 'es';
 }
 
 function viteEnv(key) {
@@ -53,7 +67,38 @@ function modelsToTry() {
 let conversationHistory = [];
 
 function buildMessages() {
-  return [{ role: 'system', content: SYSTEM_PROMPT }, ...conversationHistory];
+  let systemPrompt = SYSTEM_PROMPT;
+  
+  // Ajustar el idioma de respuesta en el system prompt basado en el idioma detectado
+  if (detectedLanguage === 'en') {
+    systemPrompt = systemPrompt.replace(
+      'IDIOMA: Responde siempre en español.',
+      'LANGUAGE: Always respond in English.'
+    );
+    // Si es inglés, traducir también las reglas iniciales
+    systemPrompt = systemPrompt.replace(
+      "Eres FusaBot, el asistente oficial de FusaShop (Fusagasugá, Colombia).\n\nREGLAS DE ORO PARA TUS RESPUESTAS:",
+      "You are FusaBot, the official assistant of FusaShop (Fusagasugá, Colombia).\n\nGOLDEN RULES FOR YOUR RESPONSES:"
+    );
+    systemPrompt = systemPrompt.replace(
+      '1. BREVEDAD: Tus respuestas deben ser cortas, concisas y directas. No uses más de 2 o 3 oraciones por respuesta.',
+      '1. BREVITY: Your answers should be short, concise and direct. Do not use more than 2 or 3 sentences per answer.'
+    );
+    systemPrompt = systemPrompt.replace(
+      '2. IDENTIDAD: Habla siempre como parte de la empresa. Usa frases como "Aquí en FusaShop...", "Nuestra plataforma le ofrece...", "Como asistente de FusaShop...".',
+      '2. IDENTITY: Always speak as part of the company. Use phrases like "Here at FusaShop...", "Our platform offers you...", "As FusaShop assistant...".'
+    );
+    systemPrompt = systemPrompt.replace(
+      '3. ENFOQUE: Solo respondes sobre FusaShop (productos, pagos, vendedores de Fusagasugá, tecnología).',
+      '3. FOCUS: You only answer about FusaShop (products, payments, sellers from Fusagasugá, technology).'
+    );
+    systemPrompt = systemPrompt.replace(
+      '4. NO ALUCINAR: Si no sabes algo, remite al soporte oficial de FusaShop.',
+      '4. DO NOT HALLUCINATE: If you don\'t know something, refer to FusaShop official support.'
+    );
+  }
+  
+  return [{ role: 'system', content: systemPrompt }, ...conversationHistory];
 }
 
 async function callGroq(model) {
@@ -82,9 +127,10 @@ async function callGroq(model) {
     const name = e && e.name;
     const msg = e && e.message;
     if (name === 'TypeError' || /Failed to fetch|NetworkError|Load failed/i.test(String(msg))) {
-      throw new Error(
-        'Sin conexión a Groq (Failed to fetch). Revisa: internet, bloqueadores, VPN, o que la página se sirva por http(s) con un servidor local (no abras el HTML como file://). En redes restrictivas usa un proxy en tu backend.',
-      );
+      const errorMsg = detectedLanguage === 'en'
+        ? 'No connection to Groq (Failed to fetch). Check: internet, blockers, VPN, or that the page is served via http(s) with a local server (do not open HTML as file://). On restrictive networks use a proxy in your backend.'
+        : 'Sin conexión a Groq (Failed to fetch). Revisa: internet, bloqueadores, VPN, o que la página se sirva por http(s) con un servidor local (no abras el HTML como file://). En redes restrictivas usa un proxy en tu backend.';
+      throw new Error(errorMsg);
     }
     throw e;
   }
@@ -98,7 +144,8 @@ async function callGroq(model) {
   const text = data.choices?.[0]?.message?.content;
   if (!text || !String(text).trim()) {
     console.error('[FusaBot] Respuesta vacía:', data);
-    throw new Error('Groq no devolvió texto usable.');
+    const errMsg = detectedLanguage === 'en' ? 'Groq did not return usable text.' : 'Groq no devolvió texto usable.';
+    throw new Error(errMsg);
   }
   return String(text).trim();
 }
@@ -106,10 +153,14 @@ async function callGroq(model) {
 async function callAssistant(userMessage) {
   const key = groqApiKey();
   if (!key) {
-    throw new Error(
-      'Falta la API key de Groq. Pon tu clave gsk_… en window.__FUSABOT_CONFIG__.groqKey (HTML) o en VITE_GROQ_API_KEY (.env con Vite).',
-    );
+    const errorMsg = detectedLanguage === 'en'
+      ? 'Missing Groq API key. Place your gsk_… key in window.__FUSABOT_CONFIG__.groqKey (HTML) or in VITE_GROQ_API_KEY (.env with Vite).'
+      : 'Falta la API key de Groq. Pon tu clave gsk_… en window.__FUSABOT_CONFIG__.groqKey (HTML) o en VITE_GROQ_API_KEY (.env con Vite).';
+    throw new Error(errorMsg);
   }
+
+  // Detectar el idioma del mensaje del usuario
+  detectedLanguage = detectLanguage(userMessage);
 
   conversationHistory.push({ role: 'user', content: userMessage });
   if (conversationHistory.length > 16) {
@@ -132,7 +183,8 @@ async function callAssistant(userMessage) {
   }
 
   conversationHistory.pop();
-  throw lastErr || new Error('No se pudo obtener respuesta de Groq.');
+  const lastErrMsg = lastErr instanceof Error ? lastErr.message : 'Could not get response from Groq.';
+  throw lastErr || new Error(detectedLanguage === 'en' ? lastErrMsg : 'No se pudo obtener respuesta de Groq.');
 }
 
 function renderMessage(container, text, role) {
@@ -147,7 +199,8 @@ function showTypingIndicator(container) {
   const indicator = document.createElement('div');
   indicator.id = 'typing-indicator';
   indicator.classList.add('chat-bubble', 'bot-bubble', 'typing');
-  indicator.textContent = 'FusaBot está escribiendo...';
+  const text = detectedLanguage === 'en' ? 'FusaBot is typing...' : 'FusaBot está escribiendo...';
+  indicator.textContent = text;
   container.appendChild(indicator);
   container.scrollTop = container.scrollHeight;
   return indicator;
@@ -164,11 +217,10 @@ export function initChatbot({ containerId, inputId, sendBtnId }) {
   }
 
   if (container.children.length === 0) {
-    renderMessage(
-      container,
-      '¡Hola! Soy FusaBot 🛒 el asistente de FusaShop. ¿En qué te puedo ayudar hoy?',
-      'bot',
-    );
+    const welcomeMsg = detectedLanguage === 'en'
+      ? '👋 Hi! I\'m FusaBot 🛒, FusaShop\'s assistant. How can I help you today?'
+      : '¡Hola! Soy FusaBot 🛒 el asistente de FusaShop. ¿En qué te puedo ayudar hoy?';
+    renderMessage(container, welcomeMsg, 'bot');
   }
 
   async function handleSend() {
@@ -187,9 +239,12 @@ export function initChatbot({ containerId, inputId, sendBtnId }) {
     } catch (err) {
       typingEl.remove();
       const hint = err instanceof Error ? err.message : 'Error desconocido';
+      const prefix = detectedLanguage === 'en'
+        ? 'Could not connect with the assistant. '
+        : 'No pude conectar con el asistente. ';
       renderMessage(
         container,
-        `No pude conectar con el asistente. ${hint}`,
+        `${prefix}${hint}`,
         'bot',
       );
       console.error('[FusaBot Error]', err);
