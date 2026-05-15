@@ -144,11 +144,6 @@ export const FUSASHOP_KNOWLEDGE = {
         académica y entrevista personal.`,
       },
       {
-        pregunta: '¿Cuál es el costo de la Maestría?',
-        respuesta: `Te invitamos a contactar directamente a la Universidad de Cundinamarca
-        para consultar aranceles, becas y opciones de financiamiento disponibles.`,
-      },
-      {
         pregunta: '¿Es posible estudiar MEDIT mientras trabajo?',
         respuesta: `Sí. MEDIT está diseñada con modalidad presencial con apoyo digital,
         lo que permite a profesionales activos compatibilizar sus horarios.`,
@@ -162,6 +157,12 @@ export const FUSASHOP_KNOWLEDGE = {
         pregunta: '¿MEDIT ofrece acceso a nuevas tecnologías educativas?',
         respuesta: `Sí. El programa integra plataformas de aprendizaje digital, herramientas
         de inteligencia artificial educativa, realidad virtual y otros recursos innovadores.`,
+      },
+      {
+        pregunta: '¿Cuáles son las líneas de investigación de MEDIT?',
+        respuesta: `MEDIT tiene 4 líneas principales: Educación Digital y Transformación Pedagógica,
+        Tecnologías Emergentes en Educación, Gestión de Proyectos de Transformación Digital Educativa,
+        e Innovación en Ambientes de Aprendizaje.`,
       },
     ],
   },
