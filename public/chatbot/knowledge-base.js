@@ -107,62 +107,60 @@ export const FUSASHOP_KNOWLEDGE = {
 
   medit: {
     nombre: 'MEDIT',
-    nombreCompleto: 'Maestría en Educación Digital y Tecnología',
+    nombreCompleto: 'Modelo Educativo Digital Transmoderno',
     universidad: 'Universidad de Cundinamarca',
-    descripcion: `La Maestría en Educación Digital y Tecnología (MEDIT) es un programa
-    académico de postgrado diseñado para formar expertos en la integración de tecnología
-    digital en procesos educativos. Prepara profesionales para transformar la educación
-    mediante herramientas digitales, innovación pedagógica y gestión de la transformación
-    digital en instituciones educativas.`,
-    facultad: 'Facultad de Educación',
-    duracion: '4 semestres',
-    modalidad: 'Presencial con apoyo digital',
-    ubicacion: 'Fusagasugá, Cundinamarca',
-    objetivos: [
-      'Formar maestros especializados en educación digital y tecnología',
-      'Desarrollar competencias en diseño de ambientes de aprendizaje digital',
-      'Integrar pedagogía con herramientas tecnológicas innovadoras',
-      'Impulsar la transformación digital en instituciones educativas',
+    descripcion: `MEDIT es el Modelo Educativo Digital Transmoderno de la Universidad de Cundinamarca.
+    Fue adoptado oficialmente por el Consejo Académico en diciembre de 2019.
+    Su idea central es que la universidad deje atrás los modelos que solo transmiten información,
+    y se enfoque en formar personas íntegras — para la vida, los valores democráticos,
+    la civilidad y la libertad.`,
+    ejes: [
+      'Ética',
+      'Aprendizaje',
+      'Conocimiento',
+      'Tecnología',
     ],
-    lineasInvestigacion: [
-      'Educación Digital y Transformación Pedagógica',
-      'Tecnologías Emergentes en Educación',
-      'Gestión de Proyectos de Transformación Digital Educativa',
-      'Innovación en Ambientes de Aprendizaje',
+    principiosBasicos: [
+      'El aprendizaje es un proceso autónomo, abierto, colaborativo e interactivo',
+      'El docente no es una fuente de verdad, sino un gestor de conocimiento',
+      'Estudiante y docente son pares en el proceso de aprendizaje',
+      'Formación de personas íntegras basada en valores democráticos y libertad',
     ],
-    coordinador: 'Coordinador MEDIT',
     contacto: {
       correo: 'medit@ucundinamarca.edu.co',
-      telefono: '(8) 8674000 ext. Consultar extensión MEDIT',
+      telefono: '(8) 8674000',
       ubicacion: 'Universidad de Cundinamarca, Fusagasugá, Cundinamarca',
     },
     faqMedit: [
       {
-        pregunta: '¿Cuáles son los requisitos para ingresar a MEDIT?',
-        respuesta: `Poseer título de licenciado, profesional o equivalente. Experiencia
-        docente o en educación es deseable. Se requiere presentar prueba de aptitud
-        académica y entrevista personal.`,
+        pregunta: '¿Qué es el MEDIT?',
+        respuesta: `MEDIT es el Modelo Educativo Digital Transmoderno de la Universidad de Cundinamarca,
+        adoptado oficialmente en diciembre de 2019. Se enfoca en formar personas íntegras para la vida,
+        los valores democráticos, la civilidad y la libertad.`,
       },
       {
-        pregunta: '¿Es posible estudiar MEDIT mientras trabajo?',
-        respuesta: `Sí. MEDIT está diseñada con modalidad presencial con apoyo digital,
-        lo que permite a profesionales activos compatibilizar sus horarios.`,
+        pregunta: '¿Cuáles son los 4 ejes del MEDIT?',
+        respuesta: `Los cuatro ejes fundamentales son: Ética (valores y responsabilidad social),
+        Aprendizaje (proceso autónomo y colaborativo), Conocimiento (construcción colectiva del saber),
+        y Tecnología (herramientas para potenciar la educación).`,
       },
       {
-        pregunta: '¿Cuál es el perfil de los estudiantes de MEDIT?',
-        respuesta: `Docentes en ejercicio, diseñadores educativos, coordinadores pedagógicos
-        y profesionales interesados en la transformación digital de la educación.`,
+        pregunta: '¿Cuál es el rol del docente en MEDIT?',
+        respuesta: `El docente en MEDIT no es una fuente de verdad, sino un gestor de conocimiento.
+        Es un par en el proceso de aprendizaje junto con el estudiante, facilitando la construcción
+        colectiva y colaborativa del conocimiento.`,
       },
       {
-        pregunta: '¿MEDIT ofrece acceso a nuevas tecnologías educativas?',
-        respuesta: `Sí. El programa integra plataformas de aprendizaje digital, herramientas
-        de inteligencia artificial educativa, realidad virtual y otros recursos innovadores.`,
+        pregunta: '¿Cómo es el aprendizaje en MEDIT?',
+        respuesta: `El aprendizaje es un proceso autónomo, abierto, colaborativo e interactivo.
+        Los estudiantes son protagonistas activos de su formación, trabajando en grupos interdisciplinarios
+        y con apoyo de tecnología digital.`,
       },
       {
-        pregunta: '¿Cuáles son las líneas de investigación de MEDIT?',
-        respuesta: `MEDIT tiene 4 líneas principales: Educación Digital y Transformación Pedagógica,
-        Tecnologías Emergentes en Educación, Gestión de Proyectos de Transformación Digital Educativa,
-        e Innovación en Ambientes de Aprendizaje.`,
+        pregunta: '¿Cómo se relacionan estudiante y docente en MEDIT?',
+        respuesta: `En MEDIT, estudiante y docente son pares en el proceso de aprendizaje.
+        Ambos contribuyen con sus conocimientos y experiencias en una relación horizontal y colaborativa,
+        donde se construye el conocimiento de forma conjunta.`,
       },
     ],
   },
@@ -182,7 +180,7 @@ function knowledgeToPromptText(k) {
     `SOPORTE: ${k.soporte.canales.join(', ')}. Horario: ${k.soporte.horario}`,
     `FAQ:\n${faq}`,
     `EQUIPO dev: ${k.equipo.desarrolladores.join('; ')}. Asesores: ${k.equipo.asesores.join(', ')}. ${k.equipo.universidad}`,
-    `MEDIT (Maestría en Educación Digital y Tecnología): ${k.medit.descripcion.replace(/\s+/g, ' ')} Objetivos: ${k.medit.objetivos.join('; ')}. Contacto: ${k.medit.contacto.correo}. Duración: ${k.medit.duracion}. Modalidad: ${k.medit.modalidad}`,
+    `MEDIT (Modelo Educativo Digital Transmoderno de UCundinamarca): ${k.medit.descripcion.replace(/\s+/g, ' ')} Ejes: ${k.medit.ejes.join(', ')}. Principios: ${k.medit.principiosBasicos.join('; ')}. Contacto: ${k.medit.contacto.correo}`,
     `FAQ MEDIT:\n${faqMedit}`,
   ].join('\n');
 }
